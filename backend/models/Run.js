@@ -49,4 +49,4 @@ runSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = mongoose.model('Run', runSchema);
+module.exports = mongoose.model('Run', runSchema, "Runs");
