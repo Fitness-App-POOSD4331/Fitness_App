@@ -1,308 +1,268 @@
 import React, { useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
+import { Cloud, Mail, Lock, User, Activity, Weight, Ruler, Calendar, Users } from 'lucide-react';
 
 function buildPath(route: string): string {
- if (import.meta.env.MODE !== 'development') {
-   return 'http://your-domain.com:5001/' + route;
- } else {
-   return 'http://localhost:5001/' + route;
- }
+  return 'http://localhost:5001/' + route;
 }
-
 
 function Login() {
- const [message, setMessage] = useState('');
- const [email, setEmail] = useState('');
- const [password, setPassword] = useState('');
- const [displayName, setDisplayName] = useState('');
- const [userName, setUserName] = useState('');
- const [confirmPassword, setConfirmPassword] = useState('');
- const [weight, setWeight] = useState('');
- const [height, setHeight] = useState('');
- const [age, setAge] = useState('');
- const [sex, setSex] = useState('male');
- const [isRegister, setIsRegister] = useState(false);
-
-
- const handleSetEmail = (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value);
- const handleSetPassword = (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value);
- const handleSetDisplayName = (e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value);
- const handleSetUserName = (e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value);
- const handleSetConfirmPassword = (e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value);
- const handleSetWeight = (e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value);
- const handleSetHeight = (e: React.ChangeEvent<HTMLInputElement>) => setHeight(e.target.value);
- const handleSetAge = (e: React.ChangeEvent<HTMLInputElement>) => setAge(e.target.value);
- const handleSetSex = (e: React.ChangeEvent<HTMLSelectElement>) => setSex(e.target.value);
-
-
- const doLogin = async (event: React.FormEvent) => {
-   event.preventDefault();
-   const obj = { email: email, password: password };
-   const js = JSON.stringify(obj);
-
-
-   try {
-     const response = await fetch(buildPath('api/auth/login'), {
-       method: 'POST',
-       body: js,
-       headers: { 'Content-Type': 'application/json' },
-     });
-
-
-     const res = await response.json();
-
-
-     if (!res.success) {
-       setMessage(res.message || 'Login failed');
-     } else {
-       setMessage('');
-       // Store token from res.data.token
-       localStorage.setItem('token', res.data.token);
-       localStorage.setItem('user_data', JSON.stringify(res.data));
-       window.location.href = '/leaderboard';
-     }
-   } catch (e: any) {
-     setMessage('Login error: ' + e.toString());
-   }
- };
-
-
- const doRegister = async (event: React.FormEvent) => {
-   event.preventDefault();
+  const navigate = useNavigate();
+  const [isRegister, setIsRegister] = useState(false);
+  const [message, setMessage] = useState('');
+  const [remember, setRemember] = useState(false);
   
-   if (password !== confirmPassword) {
-     setMessage('Passwords do not match');
-     return;
-   }
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [userName, setUserName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
+  const [age, setAge] = useState('');
+  const [sex, setSex] = useState('male');
 
+  const doLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const obj = { email: email, password: password };
+    const js = JSON.stringify(obj);
 
-   const obj = {
-     displayName: displayName,
-     email: email,
-     password: password,
-     userName: userName,
-     weight: weight ? Number(weight) : undefined,
-     height: height ? Number(height) : undefined,
-     age: age ? Number(age) : undefined,
-     sex: sex
-   };
-   const js = JSON.stringify(obj);
+    try {
+      const response = await fetch(buildPath('api/auth/login'), {
+        method: 'POST',
+        body: js,
+        headers: { 'Content-Type': 'application/json' },
+      });
 
+      const res = await response.json();
 
-   try {
-     const response = await fetch(buildPath('api/auth/register'), {
-       method: 'POST',
-       body: js,
-       headers: { 'Content-Type': 'application/json' },
-     });
+      if (!res.success) {
+        setMessage(res.message || 'Login failed');
+      } else {
+        setMessage('');
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user_data', JSON.stringify(res.data));
+        window.location.href = '/dashboard';
+      }
+    } catch (e: any) {
+      setMessage('Login error: ' + e.toString());
+    }
+  };
 
+  const doRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match');
+      return;
+    }
 
-     const res = await response.json();
+    const obj = { 
+      displayName: displayName, 
+      email: email, 
+      password: password,
+      userName: userName,
+      weight: weight ? Number(weight) : undefined,
+      height: height ? Number(height) : undefined,
+      age: age ? Number(age) : undefined,
+      sex: sex
+    };
+    const js = JSON.stringify(obj);
 
+    try {
+      const response = await fetch(buildPath('api/auth/register'), {
+        method: 'POST',
+        body: js,
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-     if (!res.success) {
-       setMessage(res.message || 'Registration failed');
-     } else {
-       setMessage('');
-       localStorage.setItem('token', res.data.token);
-       localStorage.setItem('user_data', JSON.stringify(res.data));
-       window.location.href = '/leaderboard';
-     }
-   } catch (e: any) {
-     setMessage('Registration error: ' + e.toString());
-   }
- };
+      const res = await response.json();
 
+      if (!res.success) {
+        setMessage(res.message || 'Registration failed');
+      } else {
+        // UPDATED: Redirect to check-email page instead of logging in directly
+        setMessage('');
+        navigate('/check-email', { 
+          state: { email: email } 
+        });
+      }
+    } catch (e: any) {
+      setMessage('Registration error: ' + e.toString());
+    }
+  };
 
- const toggleMode = () => {
-   setIsRegister(!isRegister);
-   setMessage('');
-   setEmail('');
-   setPassword('');
-   setDisplayName('');
-   setUserName('');
-   setConfirmPassword('');
-   setWeight('');
-   setHeight('');
-   setAge('');
-   setSex('male');
- };
+  return (
+    <div className="bg-gradient-to-r from-blue-300 via-blue-500 to-blue-900 flex items-center justify-center p-4 min-h-screen relative">
+      <div className="absolute inset-0 bg-black opacity-20"></div>
+      <div className="relative w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-300 via-blue-500 to-blue-900 p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="bg-white rounded-full p-3">
+                <Cloud className="w-12 h-12 text-blue-500" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-2">Sky Run</h1>
+            <p className="text-blue-100">Your fitness journey starts here</p>
+          </div>
 
+          <div className="p-8">
+            <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setIsRegister(false)}
+                className={`flex-1 py-2 rounded-md font-semibold transition-all ${!isRegister ? 'bg-white text-blue-500 shadow-md' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsRegister(true)}
+                className={`flex-1 py-2 rounded-md font-semibold transition-all ${isRegister ? 'bg-white text-blue-500 shadow-md' : 'text-gray-600 hover:text-blue-600'}`}
+              >
+                Register
+              </button>
+            </div>
 
- return (
-   <div className="bg-gradient-to-r from-blue-300 via-blue-500 to-blue-900 flex items-center justify-center p-4 min-h-screen relative">
-     <div className="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md max-h-screen overflow-y-auto">
-       <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
-         {isRegister ? 'Create Account' : 'Fitness App Login'}
-       </h2>
-      
-       {message && (
-         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-           {message}
-         </div>
-       )}
+            {message && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+                {message}
+              </div>
+            )}
 
+            {!isRegister ? (
+              <form className="space-y-4" onSubmit={doLogin}>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" required />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center">
+                    <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="mr-2" />
+                    <span className="text-gray-600">Remember me</span>
+                  </label>
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('Forgot password clicked!');
+                      navigate('/forgot-password');
+                    }} 
+                    className="text-blue-500 hover:text-blue-700 font-medium"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <button type="submit" className="w-full bg-gradient-to-r from-blue-300 via-blue-500 to-blue-900 text-white py-3 rounded-lg font-semibold hover:from-blue-400 hover:via-blue-600 hover:to-blue-950 transition-all duration-300 flex items-center justify-center space-x-2">
+                  <Activity className="w-5 h-5" />
+                  <span>Login</span>
+                </button>
+              </form>
+            ) : (
+              <form className="space-y-4" onSubmit={doRegister}>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Display Name *</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="text" placeholder="John Doe" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Username *</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="text" placeholder="johndoe123" value={userName} onChange={(e) => setUserName(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Weight (kg)</label>
+                    <div className="relative">
+                      <Weight className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input type="number" placeholder="70" value={weight} onChange={(e) => setWeight(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Height (cm)</label>
+                    <div className="relative">
+                      <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input type="number" placeholder="175" value={height} onChange={(e) => setHeight(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input type="number" placeholder="25" value={age} onChange={(e) => setAge(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sex</label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <select value={sex} onChange={(e) => setSex(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 transition-all appearance-none">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" className="w-full bg-gradient-to-r from-blue-300 via-blue-500 to-blue-900 text-white py-3 rounded-lg font-semibold hover:from-blue-400 hover:via-blue-600 hover:to-blue-950 transition-all duration-300 flex items-center justify-center space-x-2">
+                  <Activity className="w-5 h-5" />
+                  <span>Create Account</span>
+                </button>
+              </form>
+            )}
 
-       <form onSubmit={isRegister ? doRegister : doLogin}>
-         {isRegister && (
-           <>
-             <div className="mb-4">
-               <label className="block text-gray-700 text-sm font-bold mb-2">
-                 Display Name *
-               </label>
-               <input
-                 type="text"
-                 value={displayName}
-                 onChange={handleSetDisplayName}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 required
-               />
-             </div>
-
-
-             <div className="mb-4">
-               <label className="block text-gray-700 text-sm font-bold mb-2">
-                 Username *
-               </label>
-               <input
-                 type="text"
-                 value={userName}
-                 onChange={handleSetUserName}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 required
-               />
-             </div>
-           </>
-         )}
-
-
-         <div className="mb-4">
-           <label className="block text-gray-700 text-sm font-bold mb-2">
-             Email {isRegister && '*'}
-           </label>
-           <input
-             type="email"
-             value={email}
-             onChange={handleSetEmail}
-             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-             required
-           />
-         </div>
-
-
-         <div className="mb-4">
-           <label className="block text-gray-700 text-sm font-bold mb-2">
-             Password {isRegister && '*'}
-           </label>
-           <input
-             type="password"
-             value={password}
-             onChange={handleSetPassword}
-             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-             required
-           />
-         </div>
-
-
-         {isRegister && (
-           <>
-             <div className="mb-4">
-               <label className="block text-gray-700 text-sm font-bold mb-2">
-                 Confirm Password *
-               </label>
-               <input
-                 type="password"
-                 value={confirmPassword}
-                 onChange={handleSetConfirmPassword}
-                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 required
-               />
-             </div>
-
-
-             <div className="mb-4 grid grid-cols-2 gap-4">
-               <div>
-                 <label className="block text-gray-700 text-sm font-bold mb-2">
-                   Weight (kg)
-                 </label>
-                 <input
-                   type="number"
-                   value={weight}
-                   onChange={handleSetWeight}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="70"
-                 />
-               </div>
-               <div>
-                 <label className="block text-gray-700 text-sm font-bold mb-2">
-                   Height (cm)
-                 </label>
-                 <input
-                   type="number"
-                   value={height}
-                   onChange={handleSetHeight}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="175"
-                 />
-               </div>
-             </div>
-
-
-             <div className="mb-4 grid grid-cols-2 gap-4">
-               <div>
-                 <label className="block text-gray-700 text-sm font-bold mb-2">
-                   Age
-                 </label>
-                 <input
-                   type="number"
-                   value={age}
-                   onChange={handleSetAge}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                   placeholder="25"
-                 />
-               </div>
-               <div>
-                 <label className="block text-gray-700 text-sm font-bold mb-2">
-                   Sex
-                 </label>
-                 <select
-                   value={sex}
-                   onChange={handleSetSex}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                 >
-                   <option value="male">Male</option>
-                   <option value="female">Female</option>
-                   <option value="other">Other</option>
-                 </select>
-               </div>
-             </div>
-           </>
-         )}
-
-
-         <button
-           type="submit"
-           className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 mb-4"
-         >
-           {isRegister ? 'Register' : 'Login'}
-         </button>
-       </form>
-
-
-       <div className="text-center">
-         <button
-           onClick={toggleMode}
-           className="text-blue-500 hover:underline"
-         >
-           {isRegister
-             ? 'Already have an account? Login here'
-             : "Don't have an account? Register here"}
-         </button>
-       </div>
-     </div>
-   </div>
- );
+            <div className="mt-6 text-center">
+              <p className="text-gray-600 text-sm">
+                {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
+                <button type="button" onClick={() => setIsRegister(!isRegister)} className="text-blue-500 hover:text-blue-700 font-semibold">
+                  {isRegister ? 'Login' : 'Sign up'}
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+        <p className="text-center text-white text-sm mt-6 opacity-90">© 2025 Sky Run. Transform your fitness journey.</p>
+      </div>
+    </div>
+  );
 }
-
 
 export default Login;
