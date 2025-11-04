@@ -10,12 +10,8 @@ class RunService {
 
   Future<Map<String, String>> _getAuthHeaders() async {
     final token = await _authService.getToken();
-
-    // ⭐ ADDED LOGGING HERE ⭐
-    print('RunService: Retrieved token: ${token != null ? 'YES' : 'NO'}');
-
     if (token == null) {
-      throw Exception('Authentication required'); // The exception that is probably being thrown
+      throw Exception('Authentication required');
     }
     return {
       'Content-Type': 'application/json',
@@ -25,27 +21,20 @@ class RunService {
 
   // 1. POST: Add a Run (includes steps)
   Future<Run> createRun(Run run) async {
-    try {
-      final headers = await _getAuthHeaders();
+    final headers = await _getAuthHeaders();
 
-      final response = await http.post(
-        Uri.parse(_baseUrl),
-        headers: headers,
-        body: jsonEncode(run.toJson()), // Run model has the steps data
-      );
+    final response = await http.post(
+      Uri.parse(_baseUrl),
+      headers: headers,
+      body: jsonEncode(run.toJson()), // Run model has the steps data
+    );
 
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body)['data'];
-        return Run.fromJson(data);
-      } else {
-        final errorBody = jsonDecode(response.body);
-        // Log the actual server error response for better debugging
-        print('RunService Error: ${response.statusCode} - ${errorBody['message']}');
-        throw Exception(errorBody['message'] ?? 'Failed to create run');
-      }
-    } catch (e) {
-      print('RunService Exception: $e');
-      rethrow;
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body)['data'];
+      return Run.fromJson(data);
+    } else {
+      final errorBody = jsonDecode(response.body);
+      throw Exception(errorBody['message'] ?? 'Failed to create run');
     }
   }
 
