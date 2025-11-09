@@ -110,7 +110,7 @@ function UserStatsPage() {
                   <MapPin className="w-8 h-8 opacity-80" />
                   <Trophy className="w-6 h-6 opacity-60" />
                 </div>
-                <div className="text-3xl font-bold mb-1">{stats.totalDistance.toFixed(1)} km</div>
+                <div className="text-3xl font-bold mb-1">{stats.totalDistance.toFixed(1)} miles</div>
                 <div className="text-blue-100 text-sm font-medium">Total Distance</div>
               </div>
 
@@ -174,7 +174,7 @@ function UserStatsPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <div className="text-2xl font-bold text-blue-600 mb-1">
-                      {(stats.totalDistance / stats.totalRuns).toFixed(2)} km
+                      {(stats.totalDistance / stats.totalRuns).toFixed(2)} miles
                     </div>
                     <div className="text-xs text-gray-600">Avg Distance</div>
                   </div>
