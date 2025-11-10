@@ -1,0 +1,1335 @@
+openapi: 3.0.3
+info:
+  title: Fitness App API
+  description: |
+    A comprehensive fitness tracking application API that allows users to:
+    - Register and manage their accounts
+    - Track running activities (distance, time, calories, pace)
+    - View leaderboards and compete with other users
+    - Manage user profiles and fitness metrics
+
+    ## Authentication
+    Most endpoints require JWT authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+  contact:
+    email: noreply@smallproject.shop
+  license:
+    name: MIT
+  version: 1.0.0
+servers:
+- url: http://localhost:5000/api
+  description: Local development server
+- url: https://smallproject.shop/api
+  description: Production server
+tags:
+- name: Authentication
+  description: "User registration, login, email verification, and password management"
+- name: Users
+  description: User profile and statistics management
+- name: Runs
+  description: Running activity tracking and statistics
+- name: Leaderboard
+  description: Competition rankings and performance comparisons
+paths:
+  /auth/register:
+    post:
+      tags:
+      - Authentication
+      summary: Register a new user
+      description: Creates a new user account and sends a verification email
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_register_body"
+        required: true
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_201"
+        "400":
+          description: Bad request (email or username already exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/login:
+    post:
+      tags:
+      - Authentication
+      summary: Login user
+      description: Authenticates a user and returns a JWT token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_login_body"
+        required: true
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Email not verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "423":
+          description: Account locked due to too many failed login attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/verify-email:
+    get:
+      tags:
+      - Authentication
+      summary: Verify email address
+      description: Verifies user's email address using the token sent via email
+      parameters:
+      - name: token
+        in: query
+        description: Email verification token
+        required: true
+        schema:
+          type: string
+        example: a1b2c3d4e5f6...
+      responses:
+        "200":
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_1"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/resend-verification:
+    post:
+      tags:
+      - Authentication
+      summary: Resend verification email
+      description: Resends the email verification link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_resendverification_body"
+        required: true
+      responses:
+        "200":
+          description: Verification email resent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/forgot-password:
+    post:
+      tags:
+      - Authentication
+      summary: Request password reset
+      description: Sends a password reset link to the user's email
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_forgotpassword_body"
+        required: true
+      responses:
+        "200":
+          description: Password reset email sent (always returns success for security)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+  /auth/reset-password:
+    post:
+      tags:
+      - Authentication
+      summary: Reset password
+      description: Resets the user's password using the token from email
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_resetpassword_body"
+        required: true
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/change-password:
+    post:
+      tags:
+      - Authentication
+      summary: Change password (authenticated)
+      description: Changes the password for an authenticated user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/auth_changepassword_body"
+        required: true
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Current password is incorrect or not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+  /auth/profile:
+    get:
+      tags:
+      - Authentication
+      summary: Get user profile
+      description: Returns the authenticated user's profile information
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_2"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+  /users/profile:
+    get:
+      tags:
+      - Users
+      summary: Get user profile
+      description: Returns the authenticated user's detailed profile
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_3"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+    put:
+      tags:
+      - Users
+      summary: Update user profile
+      description: Updates the authenticated user's profile information
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/users_profile_body"
+        required: true
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_4"
+        "400":
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+  /users/stats:
+    get:
+      tags:
+      - Users
+      summary: Get user statistics
+      description: Returns the authenticated user's fitness statistics
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_5"
+      security:
+      - bearerAuth: []
+  /users/metrics:
+    put:
+      tags:
+      - Users
+      summary: Update fitness metrics
+      description: Manually updates user's distance and calories (primarily for admin use)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/users_metrics_body"
+        required: true
+      responses:
+        "200":
+          description: Metrics updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_6"
+      security:
+      - bearerAuth: []
+  /runs:
+    get:
+      tags:
+      - Runs
+      summary: Get all runs
+      description: Returns all runs for the authenticated user
+      responses:
+        "200":
+          description: Runs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_7"
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Runs
+      summary: Create a new run
+      description: Records a new running activity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/runs_body"
+        required: true
+      responses:
+        "201":
+          description: Run created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_201_1"
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+  /runs/stats/summary:
+    get:
+      tags:
+      - Runs
+      summary: Get run statistics
+      description: Returns summary statistics for all runs
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_8"
+      security:
+      - bearerAuth: []
+  /runs/{id}:
+    get:
+      tags:
+      - Runs
+      summary: Get run by ID
+      description: Returns a specific run by its ID
+      parameters:
+      - name: id
+        in: path
+        description: Run ID
+        required: true
+        schema:
+          type: string
+        example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: Run retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_9"
+        "403":
+          description: Not authorized to access this run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+    put:
+      tags:
+      - Runs
+      summary: Update run
+      description: Updates a specific run
+      parameters:
+      - name: id
+        in: path
+        description: Run ID
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/runs_id_body"
+        required: true
+      responses:
+        "200":
+          description: Run updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_10"
+        "403":
+          description: Not authorized to update this run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+    delete:
+      tags:
+      - Runs
+      summary: Delete run
+      description: Deletes a specific run
+      parameters:
+      - name: id
+        in: path
+        description: Run ID
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Run deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_11"
+        "403":
+          description: Not authorized to delete this run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+  /leaderboard/distance:
+    get:
+      tags:
+      - Leaderboard
+      summary: Get distance leaderboard
+      description: Returns the leaderboard ranked by total distance
+      parameters:
+      - name: limit
+        in: query
+        description: Number of users per page
+        required: false
+        schema:
+          type: integer
+          default: 100
+      - name: page
+        in: query
+        description: Page number
+        required: false
+        schema:
+          type: integer
+          default: 1
+      responses:
+        "200":
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_12"
+  /leaderboard/calories:
+    get:
+      tags:
+      - Leaderboard
+      summary: Get calories leaderboard
+      description: Returns the leaderboard ranked by total calories burned
+      parameters:
+      - name: limit
+        in: query
+        description: Number of users per page
+        required: false
+        schema:
+          type: integer
+          default: 100
+      - name: page
+        in: query
+        description: Page number
+        required: false
+        schema:
+          type: integer
+          default: 1
+      responses:
+        "200":
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_13"
+  /leaderboard/top:
+    get:
+      tags:
+      - Leaderboard
+      summary: Get top performers
+      description: Returns the top 10 users by distance and calories
+      responses:
+        "200":
+          description: Top performers retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_14"
+  /leaderboard/myrank:
+    get:
+      tags:
+      - Leaderboard
+      summary: Get my rank
+      description: Returns the authenticated user's rank and nearby users
+      parameters:
+      - name: type
+        in: query
+        description: Type of ranking
+        required: false
+        schema:
+          type: string
+          default: distance
+          enum:
+          - distance
+          - calories
+      - name: range
+        in: query
+        description: Number of users to show above and below
+        required: false
+        schema:
+          type: integer
+          default: 5
+      responses:
+        "200":
+          description: Rank retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/inline_response_200_15"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        ID:
+          type: integer
+          example: 1
+        displayName:
+          type: string
+          example: John Doe
+        userName:
+          type: string
+          example: johndoe123
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        weight:
+          type: number
+          description: Weight in kg
+          example: 70
+        height:
+          type: number
+          description: Height in cm
+          example: 175
+        age:
+          type: integer
+          example: 30
+        sex:
+          type: string
+          example: male
+          enum:
+          - male
+          - female
+          - other
+        bmi:
+          type: number
+          example: 22.9
+        totalDistance:
+          type: number
+          description: Total distance run in km
+          example: 42.5
+        caloriesBurned:
+          type: number
+          example: 3250
+        isEmailVerified:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Run:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        ID:
+          type: integer
+          example: 1
+        distance:
+          minimum: 0
+          type: number
+          description: Distance in km
+          example: 5.2
+        time:
+          minimum: 0
+          type: number
+          description: Time in minutes
+          example: 30
+        averagePace:
+          minimum: 0
+          type: number
+          description: Pace in min/km
+          example: 5.77
+        caloriesBurned:
+          minimum: 0
+          type: number
+          example: 350
+        startTime:
+          type: string
+          format: date-time
+          example: 2025-01-15T08:00:00Z
+        finishTime:
+          type: string
+          format: date-time
+          example: 2025-01-15T08:30:00Z
+        description:
+          type: string
+          example: Morning run in the park
+        userID:
+          type: string
+          example: 507f1f77bcf86cd799439011
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+          example: 1
+        userId:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        displayName:
+          type: string
+          example: John Doe
+        userName:
+          type: string
+          example: johndoe123
+        totalDistance:
+          type: number
+          example: 42.5
+        caloriesBurned:
+          type: number
+          example: 3250
+        isCurrentUser:
+          type: boolean
+          example: false
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+        error:
+          type: string
+          example: Detailed error message
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation successful
+        data:
+          type: object
+    auth_register_body:
+      required:
+      - age
+      - displayName
+      - email
+      - height
+      - password
+      - sex
+      - userName
+      - weight
+      type: object
+      properties:
+        displayName:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          minLength: 8
+          type: string
+          format: password
+          example: SecurePassword123!
+        userName:
+          type: string
+          example: johndoe123
+        weight:
+          type: number
+          example: 70
+        height:
+          type: number
+          example: 175
+        age:
+          type: integer
+          example: 30
+        sex:
+          type: string
+          example: male
+          enum:
+          - male
+          - female
+          - other
+    inline_response_201:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Registration successful! Please check your email to verify your account.
+        data:
+          $ref: "#/components/schemas/inline_response_201_data"
+    auth_login_body:
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePassword123!
+    inline_response_200:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+        data:
+          $ref: "#/components/schemas/inline_response_200_data"
+    inline_response_200_1:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Email verified successfully! Welcome aboard!
+        data:
+          $ref: "#/components/schemas/inline_response_200_1_data"
+    auth_resendverification_body:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john@example.com
+    auth_forgotpassword_body:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: john@example.com
+    auth_resetpassword_body:
+      required:
+      - newPassword
+      - token
+      type: object
+      properties:
+        token:
+          type: string
+          example: a1b2c3d4e5f6...
+        newPassword:
+          minLength: 8
+          type: string
+          format: password
+          example: NewSecurePassword123!
+    auth_changepassword_body:
+      required:
+      - currentPassword
+      - newPassword
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          example: OldPassword123!
+        newPassword:
+          minLength: 8
+          type: string
+          format: password
+          example: NewPassword123!
+    inline_response_200_2:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: "#/components/schemas/User"
+    inline_response_200_3:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/User"
+    users_profile_body:
+      type: object
+      properties:
+        displayName:
+          type: string
+          example: John Smith
+        userName:
+          type: string
+          example: johnsmith123
+        weight:
+          type: number
+          example: 72
+        height:
+          type: number
+          example: 178
+        age:
+          type: integer
+          example: 31
+        sex:
+          type: string
+          example: male
+          enum:
+          - male
+          - female
+          - other
+    inline_response_200_4:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Profile updated successfully
+        data:
+          $ref: "#/components/schemas/inline_response_200_4_data"
+    inline_response_200_5:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/inline_response_200_5_data"
+    users_metrics_body:
+      type: object
+      properties:
+        distance:
+          type: number
+          example: 5.2
+        calories:
+          type: number
+          example: 350
+    inline_response_200_6:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/inline_response_200_6_data"
+    inline_response_200_7:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        count:
+          type: integer
+          example: 15
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Run"
+    runs_body:
+      required:
+      - averagePace
+      - caloriesBurned
+      - distance
+      - finishTime
+      - startTime
+      - time
+      type: object
+      properties:
+        distance:
+          minimum: 0
+          type: number
+          description: Distance in km
+          example: 5.2
+        time:
+          minimum: 0
+          type: number
+          description: Time in minutes
+          example: 30
+        averagePace:
+          minimum: 0
+          type: number
+          description: Pace in min/km
+          example: 5.77
+        caloriesBurned:
+          minimum: 0
+          type: number
+          example: 350
+        startTime:
+          type: string
+          format: date-time
+          example: 2025-01-15T08:00:00Z
+        finishTime:
+          type: string
+          format: date-time
+          example: 2025-01-15T08:30:00Z
+        description:
+          type: string
+          example: Morning run in the park
+    inline_response_201_1:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Run created successfully
+        data:
+          $ref: "#/components/schemas/Run"
+    inline_response_200_8:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/inline_response_200_8_data"
+    inline_response_200_9:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/Run"
+    runs_id_body:
+      type: object
+      properties:
+        distance:
+          type: number
+        time:
+          type: number
+        averagePace:
+          type: number
+        caloriesBurned:
+          type: number
+        startTime:
+          type: string
+          format: date-time
+        finishTime:
+          type: string
+          format: date-time
+        description:
+          type: string
+    inline_response_200_10:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/Run"
+    inline_response_200_11:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Run deleted successfully
+        data:
+          type: object
+    inline_response_200_12:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/inline_response_200_12_data"
+    inline_response_200_13:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/inline_response_200_13_data"
+    inline_response_200_14:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/inline_response_200_14_data"
+    inline_response_200_15:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/inline_response_200_15_data"
+    inline_response_201_data:
+      type: object
+      properties:
+        _id:
+          type: string
+        ID:
+          type: integer
+        displayName:
+          type: string
+        userName:
+          type: string
+        email:
+          type: string
+        isEmailVerified:
+          type: boolean
+        token:
+          type: string
+          description: JWT authentication token
+    inline_response_200_data:
+      type: object
+      properties:
+        _id:
+          type: string
+        ID:
+          type: integer
+        displayName:
+          type: string
+        userName:
+          type: string
+        email:
+          type: string
+        token:
+          type: string
+    inline_response_200_1_data:
+      type: object
+      properties:
+        email:
+          type: string
+        isEmailVerified:
+          type: boolean
+    inline_response_200_4_data:
+      type: object
+      properties:
+        _id:
+          type: string
+        ID:
+          type: integer
+        displayName:
+          type: string
+        userName:
+          type: string
+        email:
+          type: string
+        weight:
+          type: number
+        height:
+          type: number
+        age:
+          type: integer
+        sex:
+          type: string
+        bmi:
+          type: number
+    inline_response_200_5_data:
+      type: object
+      properties:
+        totalDistance:
+          type: number
+          example: 42.5
+        caloriesBurned:
+          type: number
+          example: 3250
+        totalRuns:
+          type: integer
+          example: 15
+        weight:
+          type: number
+          example: 70
+        height:
+          type: number
+          example: 175
+        bmi:
+          type: number
+          example: 22.9
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Run"
+    inline_response_200_6_data:
+      type: object
+      properties:
+        totalDistance:
+          type: number
+        caloriesBurned:
+          type: number
+    inline_response_200_8_data:
+      type: object
+      properties:
+        totalRuns:
+          type: integer
+          example: 15
+        totalDistance:
+          type: number
+          example: 78
+        totalTime:
+          type: number
+          example: 450
+        totalCalories:
+          type: number
+          example: 5250
+        averagePace:
+          type: number
+          example: 5.77
+        averageDistance:
+          type: number
+          example: 5.2
+    inline_response_200_12_data_pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 5
+        totalUsers:
+          type: integer
+          example: 450
+        usersPerPage:
+          type: integer
+          example: 100
+    inline_response_200_12_data:
+      type: object
+      properties:
+        leaderboard:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        pagination:
+          $ref: "#/components/schemas/inline_response_200_12_data_pagination"
+    inline_response_200_13_data_pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalUsers:
+          type: integer
+        usersPerPage:
+          type: integer
+    inline_response_200_13_data:
+      type: object
+      properties:
+        leaderboard:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        pagination:
+          $ref: "#/components/schemas/inline_response_200_13_data_pagination"
+    inline_response_200_14_data_topDistance:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: string
+        displayName:
+          type: string
+        userName:
+          type: string
+        totalDistance:
+          type: number
+    inline_response_200_14_data_topCalories:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: string
+        displayName:
+          type: string
+        userName:
+          type: string
+        caloriesBurned:
+          type: number
+    inline_response_200_14_data:
+      type: object
+      properties:
+        topDistance:
+          type: array
+          items:
+            $ref: "#/components/schemas/inline_response_200_14_data_topDistance"
+        topCalories:
+          type: array
+          items:
+            $ref: "#/components/schemas/inline_response_200_14_data_topCalories"
+    inline_response_200_15_data:
+      type: object
+      properties:
+        myRank:
+          type: integer
+          example: 42
+        totalUsers:
+          type: integer
+          example: 450
+        leaderboard:
+          type: array
+          items:
+            allOf:
+            - $ref: "#/components/schemas/LeaderboardEntry"
+            - type: object
+              properties:
+                isCurrentUser:
+                  type: boolean
+                  example: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: JWT token obtained from login or registration
+      scheme: bearer
+      bearerFormat: JWT
